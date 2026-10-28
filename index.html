@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardioTwin – Cardiac Model Development</title>
+    <meta name="description" content="Interactive SA/AV Coupled Van der Pol Oscillator Simulation for cardiac model development.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header id="page-header">
+        <div class="header-content">
+            <h1 id="main-title">CardioTwin</h1>
+            <p class="header-subtitle">Proof of Work – Cardiac Model Development</p>
+            <p class="header-description">Coupled Van der Pol oscillators · Synthetic arrhythmia scenarios</p>
+        </div>
+    </header>
+
+    <main id="dashboard" class="dashboard">
+
+        <!-- INPUT PANEL -->
+        <aside id="input-panel" class="input-panel">
+
+            <div class="panel-section scenario-panel">
+                <h2 class="section-title">Rhythm Scenario</h2>
+                <label for="scenario-select" class="scenario-label">Select and run a preset</label>
+                <select id="scenario-select">
+                    <option value="sinus">Sinus rhythm (baseline)</option>
+                    <option value="bradycardia">Bradycardia</option>
+                    <option value="tachycardia">Tachycardia</option>
+                    <option value="af">Atrial fibrillation</option>
+                    <option value="block">Heart block (2:1)</option>
+                    <option value="pvc">Premature ventricular beats</option>
+                </select>
+                <p id="scenario-description" aria-live="polite"></p>
+                <p class="model-note">Educational simulation: oscillator dynamics, a pulse-driven ventricular phase plant, and synthetic ECG templates. No patient calibration or clinical validation.</p>
+                <p class="model-note">Presets load 10 seconds. Adjust sliders, then run to explore. At k = 0, no native beats conduct; pacing can still capture the ventricular phase plant. Escape rhythms are not modelled.</p>
+            </div>
+
+            <div class="panel-section">
+                <h2 class="section-title">Model Parameters</h2>
+
+                <div class="param-group" id="param-sa-freq">
+                    <div class="param-header">
+                        <label for="slider-sa-freq">SA Oscillator Frequency</label>
+                        <span class="param-value"><span id="val-sa-freq">1.2</span> <span class="unit">Hz</span></span>
+                    </div>
+                    <input type="range" id="slider-sa-freq" min="0.4" max="3.0" step="0.05" value="1.2">
+                </div>
+
+                <div class="param-group" id="param-av-freq">
+                    <div class="param-header">
+                        <label for="slider-av-freq">AV Oscillator Frequency</label>
+                        <span class="param-value"><span id="val-av-freq">1.0</span> <span class="unit">Hz</span></span>
+                    </div>
+                    <input type="range" id="slider-av-freq" min="0.3" max="2.5" step="0.05" value="1.0">
+                </div>
+
+                <div class="param-group" id="param-coupling">
+                    <div class="param-header">
+                        <label for="slider-coupling">Coupling Strength (k)</label>
+                        <span class="param-value"><span id="val-coupling">0.50</span></span>
+                    </div>
+                    <input type="range" id="slider-coupling" min="0.0" max="3.0" step="0.05" value="0.50">
+                </div>
+
+                <div class="param-group" id="param-mu">
+                    <div class="param-header">
+                        <label for="slider-mu">Van der Pol Parameter (μ)</label>
+                        <span class="param-value"><span id="val-mu">1.50</span></span>
+                    </div>
+                    <input type="range" id="slider-mu" min="0.10" max="5.00" step="0.05" value="1.50">
+                </div>
+
+                <div class="param-group" id="param-duration">
+                    <div class="param-header">
+                        <label for="slider-duration">Simulation Duration</label>
+                        <span class="param-value"><span id="val-duration">10.0</span> <span class="unit">s</span></span>
+                    </div>
+                    <input type="range" id="slider-duration" min="1.0" max="60.0" step="0.5" value="10.0">
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h2 class="section-title">Pacemaker Experiment</h2>
+                <div class="control-fields">
+                    <label for="control-target">Target rate (bpm)<input id="control-target" type="number" min="40" max="120" step="1" value="72"></label>
+                    <label for="control-enable">Enable control at (s)<input id="control-enable" type="number" min="0" max="60" step="0.5" value="3"></label>
+                    <label for="control-horizon">MPC horizon (s)<input id="control-horizon" type="number" min="0.5" max="3" step="0.25" value="1.5"></label>
+                    <label for="control-effort">MPC pulse penalty<input id="control-effort" type="number" min="0" max="5" step="0.01" value="0.03"></label>
+                    <label for="control-view">ECG output<select id="control-view">
+                        <option value="uncontrolled">Uncontrolled</option><option value="fixed">Fixed pacing</option>
+                        <option value="reactive">Reactive pacing</option><option value="mpc" selected>Adaptive MPC</option>
+                    </select></label>
+                </div>
+                <p class="model-note">Run compares all four methods. ECG output switches between completed results. Other edits apply on the next run.</p>
+                <div class="divider"></div>
+                <div class="button-group">
+                    <button id="btn-run" class="btn btn-primary" type="button">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><polygon points="3,1 13,8 3,15" fill="currentColor"/></svg>
+                        Run Comparison
+                    </button>
+                    <button id="btn-reset" class="btn btn-secondary" type="button">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 0 1 10.5-4M14 8a6 6 0 0 1-10.5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><polyline points="12,1 13,4 10,4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Reset
+                    </button>
+                </div>
+
+                <div class="divider"></div>
+
+                <button id="btn-baseline" class="btn btn-preset" type="button">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1 8 L3 8 L4 3 L6 13 L8 5 L9 10 L10 7 L11 8 L15 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Baseline Sinus Rhythm
+                </button>
+            </div>
+
+            <div class="panel-section">
+                <h2 class="section-title">Simulation Status</h2>
+                <div class="status-grid" aria-live="polite">
+                    <div class="status-item"><span class="status-label">Last Run</span><span class="status-value" id="status-scenario">—</span></div>
+                    <div class="status-item"><span class="status-label">RR Variability (CV)</span><span class="status-value mono" id="status-rr">—</span></div>
+                    <div class="status-item"><span class="status-label">Beats / Blocked / PVC</span><span class="status-value mono" id="status-events">—</span></div>
+                    <div class="status-item">
+                        <span class="status-label">Status</span>
+                        <span class="status-value" id="status-state">
+                            <span class="status-dot idle"></span>
+                            Idle
+                        </span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Ventricular Rate</span>
+                        <span class="status-value mono" id="status-hr">—</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Event Conduction Delay</span>
+                        <span class="status-value mono" id="status-phase">—</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Integration Steps</span>
+                        <span class="status-value mono" id="status-steps">—</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- OUTPUT PANEL -->
+        <section id="output-panel" class="output-panel">
+
+            <div class="plot-container" id="plot-sa-container">
+                <div class="plot-header">
+                    <h3 class="plot-title">
+                        <span class="plot-indicator sa"></span>
+                        SA Activity
+                    </h3>
+                    <span class="plot-subtitle" id="sa-subtitle">Sinoatrial Node Oscillator</span>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="canvas-sa"></canvas>
+                    <div class="plot-empty" id="empty-sa">Run simulation to generate waveform</div>
+                </div>
+            </div>
+
+            <div class="plot-container" id="plot-av-container">
+                <div class="plot-header">
+                    <h3 class="plot-title">
+                        <span class="plot-indicator av"></span>
+                        AV Activity
+                    </h3>
+                    <span class="plot-subtitle">Atrioventricular Node Oscillator</span>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="canvas-av"></canvas>
+                    <div class="plot-empty" id="empty-av">Run simulation to generate waveform</div>
+                </div>
+            </div>
+
+            <div class="plot-container" id="plot-ecg-container">
+                <div class="plot-header">
+                    <h3 class="plot-title">
+                        <span class="plot-indicator ecg"></span>
+                        <span id="ecg-title">Synthetic ECG</span>
+                    </h3>
+                    <span class="plot-subtitle">Synthetic morphology · arbitrary amplitude</span>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="canvas-ecg"></canvas>
+                    <div class="plot-empty" id="empty-ecg">Run simulation to generate waveform</div>
+                </div>
+            </div>
+
+            <p id="event-summary" class="event-summary" aria-live="polite">Run a scenario to view generated beat events.</p>
+
+            <!-- SA → AV INTERACTION -->
+            <div class="interaction-section" id="interaction-section">
+                <div class="interaction-header">
+                    <h3 class="section-title">SA → AV Interaction</h3>
+                    <span class="interaction-subtitle">Oscillator coupling only; ventricular conduction is shown by ECG event markers</span>
+                </div>
+                <div class="interaction-canvas-wrapper">
+                    <canvas id="canvas-interaction"></canvas>
+                </div>
+                <div class="state-readout" id="state-readout">
+                    <div class="readout-group">
+                        <span class="readout-label">Simulation Time</span>
+                        <span class="readout-value mono" id="readout-time">—</span>
+                    </div>
+                    <div class="readout-group">
+                        <span class="readout-label">SA State (x₁, y₁)</span>
+                        <span class="readout-value mono" id="readout-sa">—</span>
+                    </div>
+                    <div class="readout-group">
+                        <span class="readout-label">AV State (x₂, y₂)</span>
+                        <span class="readout-value mono" id="readout-av">—</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <section class="control-section" aria-labelledby="control-heading">
+        <div class="control-card">
+            <h2 id="control-heading" class="section-title">Closed-Loop Pacemaker Comparison</h2>
+            <p class="control-description">Identical intrinsic disturbances, initial state and actuator constraints for all methods. Pacing adds captured beats through a ventricular phase reset; it cannot directly slow an intrinsically fast rhythm. This reduced-order plant is downstream of the SA/AV oscillators.</p>
+            <div id="control-results" hidden>
+                <p id="control-run-summary" aria-live="polite"></p>
+                <div class="chart-legend"><span style="color:#64748b">● Uncontrolled</span><span style="color:#b45309">● Fixed pacing</span><span style="color:#9333ea">● Reactive pacing</span><span style="color:#059669">● Adaptive MPC</span></div>
+                <h3>Ventricular rate (bpm)</h3>
+                <canvas id="canvas-control-rate" aria-label="Ventricular rate comparison with target and tolerance band" role="img"></canvas>
+                <p class="model-note">Dashed horizontal line: target; shaded band: ±5 bpm. Vertical dashed line: control enable. Rate is derived causally from completed RR intervals, with a timeout during long pauses.</p>
+                <h3>Delivered pacing input u[k]</h3>
+                <canvas id="canvas-control-pulses" aria-label="Pacing pulses for each controller" role="img"></canvas>
+                <div class="table-scroll"><table class="comparison-table controller-table">
+                    <caption>Metrics over the post-enable window only</caption>
+                    <thead><tr><th scope="col">Controller</th><th scope="col">RMSE (bpm)</th><th scope="col">IAE (bpm·s)</th><th scope="col">Settling (±5 bpm)</th><th scope="col">Pulses</th><th scope="col">Effort Σu²</th></tr></thead>
+                    <tbody id="controller-tbody"></tbody>
+                </table></div>
+                <p id="control-estimate" class="model-note"></p>
+            </div>
+            <details class="control-method"><summary>Plant, controller and metric definitions</summary>
+                <p><strong>Plant:</strong> φ[k+1] = φ[k] + Δφnative[k]. A threshold crossing emits an intrinsic ventricular beat. A captured unit pulse u[k] = 1 resets φ to zero and emits a paced beat. The phase increments replay the original simulated RR disturbances for every method, including block, AF and PVCs. Pacing can shift subsequent ventricular activation. It does not modify the upstream SA/AV oscillator equations.</p>
+                <p><strong>Constraints:</strong> control sample 50 ms; no delivered pulse within 250 ms of a sensed beat; at least 500 ms between delivered pulses. Natural activation is processed before a simultaneous pacing decision. Fixed pacing attempts a target-period clock pulse and inhibits unsafe attempts; reactive pacing waits until no beat has occurred for one target RR interval. These are simplified comparison laws.</p>
+                <p><strong>Adaptive MPC:</strong> the digital twin supplies an ideal observed ventricular phase. An EWMA updates the intrinsic phase-rate estimate (gain 0.2, initial 1.2 cycles/s); it receives no future disturbance schedule. At every enabled sample, a beam search (width 16) predicts binary pulse sequences over the selected horizon using the current estimate, applies the first action, then repeats. This approximate finite-horizon optimiser carries no global optimality or closed-loop stability guarantee.</p>
+                <p><strong>Objective:</strong> sum over the horizon of Δt[(ŷ/r − 1)² + 0.5 max(age/R − 1, 0)²] + 2Σ(RR/R − 1)² + ρΣu², where r is the target rate, R = 60/r, age is time since the last beat, and ρ is the pulse penalty. The RR cost is applied only when a predicted beat has a preceding beat. The phase-rate estimate is held fixed within each horizon.</p>
+                <p><strong>Measurements:</strong> y = 60/max(last completed RR, time since last beat). Before a completed RR is available, the displayed rate is zero (no estimate). Pre-window simulated beat history initialises all methods identically where available. RMSE = √[∫(y−r)²dt/T]; IAE = ∫|y−r|dt. Left-rectangle integration uses the 50 ms held output.</p>
+                <p><strong>Settling:</strong> time after control enable when rate first enters ±5 bpm and stays there for the entire remaining record, with at least 3 seconds of confirmation. A shorter tail or a later band violation cannot count as settled. Effort is Σu[k]²; each delivered unit pulse counts as one. This is a normalised stimulation measure, not battery energy in joules.</p>
+                <p><strong>Scope:</strong> a simulation experiment with perfect phase sensing and guaranteed unit-pulse capture. It is not a validated pacemaker, AF termination model, learned arrhythmia predictor, or clinical treatment model. Reference: <a href="https://www.mathworks.com/help/mpc/ug/adaptive-mpc.html" target="_blank" rel="noopener">MathWorks: adaptive and time-varying MPC</a>.</p>
+            </details>
+        </div>
+    </section>
+
+    <!-- PARAMETER CHANGE DEMONSTRATION -->
+    <section id="demo-section" class="demo-section">
+        <div class="demo-inner">
+            <div class="demo-header">
+                <h2 class="section-title">Parameter Change Demonstration</h2>
+                <p class="demo-description">
+                    Save a reference waveform, then adjust parameters and re-run to compare the effect of coupling strength, frequency, or nonlinearity changes on the cardiac rhythm.
+                </p>
+            </div>
+
+            <div class="demo-controls">
+                <button id="btn-save-ref" class="btn btn-outline" type="button" disabled>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    Save Current as Reference
+                </button>
+                <button id="btn-clear-ref" class="btn btn-outline" type="button" disabled>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M5 5l6 6M11 5l-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    Clear Reference
+                </button>
+            </div>
+
+            <div class="demo-comparison" id="demo-comparison" style="display: none;">
+                <h3 class="comparison-title">Parameter Comparison</h3>
+                <table class="comparison-table" id="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Reference</th>
+                            <th>Current</th>
+                            <th>Change</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparison-tbody">
+                    </tbody>
+                </table>
+                <p class="comparison-legend">
+                    <span class="legend-item"><span class="legend-line ref"></span> Reference waveform (dashed)</span>
+                    <span class="legend-item"><span class="legend-line current"></span> Current waveform (solid)</span>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- TECHNICAL INFORMATION -->
+    <section id="tech-section" class="tech-section">
+        <details id="tech-details">
+            <summary class="tech-summary">
+                <h2 class="section-title inline">Technical Information – Mathematical Model</h2>
+                <svg class="chevron" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </summary>
+
+            <div class="tech-content">
+                <div class="equation-block">
+                    <h3>Coupled Van der Pol Oscillator System</h3>
+                    <p>The cardiac conduction model uses two coupled Van der Pol oscillators representing the SA (sinoatrial) and AV (atrioventricular) nodes. The SA oscillator acts as the primary pacemaker, driving the AV oscillator through unidirectional coupling.</p>
+                </div>
+
+                <div class="equation-block">
+                    <h3>State-Space Formulation</h3>
+                    <div class="equations">
+                        <div class="eq-group">
+                            <span class="eq-label">SA Node:</span>
+                            <div class="eq-lines">
+                                <div class="eq"><span class="eq-lhs">dx₁/dt</span> = y₁</div>
+                                <div class="eq"><span class="eq-lhs">dy₁/dt</span> = μ(1 − x₁²) y₁ − ω<sub>SA</sub>² x₁</div>
+                            </div>
+                        </div>
+                        <div class="eq-group">
+                            <span class="eq-label">AV Node (with coupling):</span>
+                            <div class="eq-lines">
+                                <div class="eq"><span class="eq-lhs">dx₂/dt</span> = y₂</div>
+                                <div class="eq"><span class="eq-lhs">dy₂/dt</span> = μ(1 − x₂²) y₂ − ω<sub>AV</sub>² x₂ + k(x₁ − x₂)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="equation-block">
+                    <h3>Parameters</h3>
+                    <table class="params-table">
+                        <tbody>
+                            <tr><td class="mono">ω<sub>SA</sub> = 2π f<sub>SA</sub></td><td>SA natural angular frequency</td></tr>
+                            <tr><td class="mono">ω<sub>AV</sub> = 2π f<sub>AV</sub></td><td>AV natural angular frequency</td></tr>
+                            <tr><td class="mono">μ</td><td>Van der Pol nonlinearity parameter (controls relaxation oscillation shape)</td></tr>
+                            <tr><td class="mono">k</td><td>Unidirectional coupling strength (SA → AV)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="equation-block">
+                    <h3>Composite Cardiac Waveform</h3>
+                    <div class="equations">
+                        <div class="eq">
+                            <span class="eq-lhs">ECG(t)</span> = atrial templates + ventricular templates + AF baseline
+                        </div>
+                    </div>
+                    <p>SA upward zero crossings drive atrial events after a 10-second oscillator burn-in. A separate event layer conducts beats with delay 0.12 + 0.06/(1+k) seconds, blocks alternate beats for 2:1 block, and inserts early PVCs with a suppressed following response. At k = 0 there is no conduction or escape rhythm. The AV oscillator trace remains a dynamical proxy; it is not a ventricular activation trace.</p>
+                    <p class="eq-note">AF uses time-modulated atrial drive and seeded irregular ventricular intervals (0.55–1.45)/fSA seconds, without organised P waves. Gaussian templates illustrate P/QRS/T morphology and wider PVCs. All amplitudes are arbitrary units; this is not a validated electrophysiological ECG model. Ventricular rate = 60/mean RR; RR CV = 100 × population SD(RR)/mean RR. Conduction delay averages only visible conducted events, excluding PVCs; AF has no paired atrial events.</p>
+                </div>
+
+                <div class="equation-block">
+                    <h3>Numerical Integration</h3>
+                    <p>The system is integrated using the classical fourth-order Runge–Kutta (RK4) method with fixed step size Δt = 0.0005 s.</p>
+                    <div class="equations">
+                        <div class="eq"><span class="eq-lhs">k₁</span> = f(tₙ, yₙ)</div>
+                        <div class="eq"><span class="eq-lhs">k₂</span> = f(tₙ + Δt/2, yₙ + Δt k₁/2)</div>
+                        <div class="eq"><span class="eq-lhs">k₃</span> = f(tₙ + Δt/2, yₙ + Δt k₂/2)</div>
+                        <div class="eq"><span class="eq-lhs">k₄</span> = f(tₙ + Δt, yₙ + Δt k₃)</div>
+                        <div class="eq"><span class="eq-lhs">yₙ₊₁</span> = yₙ + (Δt/6)(k₁ + 2k₂ + 2k₃ + k₄)</div>
+                    </div>
+                    <p>Initial state at the start of the 10-second burn-in: x₁ = 0.1, y₁ = 0, x₂ = 0, y₂ = 0. AF substitutes ωSA(t) = ωSA[1 + 0.24 sin(2.7t) + 0.13 sin(7.1t)].</p>
+                </div>
+
+                <div class="equation-block completed-work">
+                    <h3>Completed Work</h3>
+                    <ul class="check-list">
+                        <li><span class="check">✓</span> SA/AV coupled Van der Pol oscillator model</li>
+                        <li><span class="check">✓</span> Baseline sinus rhythm simulation</li>
+                        <li><span class="check">✓</span> SA–AV oscillator interaction and coupling analysis</li>
+                        <li><span class="check">✓</span> Five synthetic arrhythmia scenarios with ventricular event markers</li>
+                        <li><span class="check">✓</span> Ventricular phase plant with fixed, reactive and adaptive MPC pacing comparisons</li>
+                    </ul>
+                </div>
+            </div>
+        </details>
+    </section>
+
+    <footer id="page-footer">
+        <p>CardioTwin · Coupled Oscillators · Closed-Loop Pacemaker Control Experiment</p>
+    </footer>
+
+    <script src="control.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
