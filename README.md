@@ -1,8 +1,79 @@
+# CardioTwin: cardiac digital twin and adaptive pacemaker control
 
+CardioTwin is an educational control-systems project for exploring simulated heart rhythms and comparing fixed pacing, reactive pacing and adaptive model predictive control (MPC).
 
-# CardioTwin: control systems experiment
+## Live website
 
-Open index.html in a modern browser. No build or server is needed. Keep control.js, app.js and style.css in the same folder. Font downloads are optional.
+**Open the deployed dashboard: [CardioTwin on AWS Amplify](https://main.dl4xlqlk86r7m.amplifyapp.com/).**
+
+Use this public HTTPS link for the project demonstration. Visitors can use the dashboard in a modern browser without installing the source code or signing in to AWS.
+
+## Where the website is hosted
+
+| Item | Deployment details |
+|---|---|
+| Cloud provider | Amazon Web Services (AWS) |
+| Hosting service | AWS Amplify Hosting |
+| AWS Region | US East (N. Virginia), `us-east-1` |
+| Application name | `CardioTwin` |
+| Amplify application ID | `dl4xlqlk86r7m` |
+| Deployment branch / environment | `main` |
+| Hosting platform | `WEB` — static hosting |
+| Website address | https://main.dl4xlqlk86r7m.amplifyapp.com/ |
+| Deployment method | Manual ZIP upload using the AWS CLI; no Git repository connection |
+
+To locate it in the AWS Console, sign in to the deployment account, select **US East (N. Virginia)**, then open **Amplify → CardioTwin → main**. The branch page shows the deployment history and website link.
+
+The deployed ZIP contains `index.html`, `style.css`, `app.js` and `control.js` directly at its root. Amplify delivers these files through its managed hosting infrastructure. Tests, documentation and local AWS deployment files are excluded from the published website.
+
+## Where the simulation and MPC run
+
+**AWS hosts the website files. The heart simulation and controller calculations execute in the visitor's browser.**
+
+```text
+Visitor opens the public HTTPS link
+                  |
+                  v
+AWS Amplify delivers HTML, CSS and JavaScript
+                  |
+                  v
+The browser runs the heart model and pacing controllers
+                  |
+                  v
+The browser displays ECG plots, pulses and comparison metrics
+```
+
+| Component | Responsibility | Execution location |
+|---|---|---|
+| AWS Amplify Hosting | Deliver the dashboard files over HTTPS | AWS |
+| `index.html` | Dashboard structure, controls and chart containers | Browser |
+| `style.css` | Responsive layout and visual styling | Browser |
+| `app.js` | Oscillator simulation, rhythm scenarios, synthetic ECG and interactions | Browser |
+| `control.js` | Ventricular phase plant, pacing controllers and performance calculations | Browser |
+
+The current application has no simulation backend API, EC2 application server, Lambda computation backend or database. It does not upload ECG signals or experiment results to AWS for processing. Settings and saved reference waveforms are held in page memory and are cleared when the page is reloaded.
+
+This architecture demonstrates a **cloud-hosted interactive dashboard with browser-based computation**. It does not demonstrate execution of the heart model or MPC on AWS servers. Cloud computation would require a separate backend extension.
+
+## How the project is used
+
+The dashboard supports academic demonstrations and control-system experiments. Users select a simulated rhythm, adjust settings, run the comparison and inspect the response. Scenarios include sinus rhythm, bradycardia, tachycardia, illustrative atrial fibrillation, 2:1 heart block and premature ventricular beats.
+
+Each run compares uncontrolled behaviour, fixed pacing, reactive pacing and adaptive MPC under identical intrinsic disturbances and initial conditions. Results include tracking error, integrated absolute error, settling time, pulse count and normalised pacing effort. Signals are synthetic; the application is not connected to a patient or physical pacemaker and is not clinically validated.
+
+## Run locally instead
+
+Extract the source package and open `index.html` in a modern browser. Keep `control.js`, `app.js` and `style.css` beside it. No local backend server or build step is required. The hosted website needs internet access; a downloaded copy can run its calculations locally. Google Fonts are optional, with system-font fallbacks.
+
+## Hosting configuration and updates
+
+The app uses manual deployments. Automatic builds, automatic branch creation, pull-request previews and performance mode are disabled. No custom domain or WAF was added. Hosting is usage-based and should not be described as guaranteed zero-cost.
+
+To publish later code changes, package the four website files at the ZIP root, create an Amplify deployment for the existing `main` branch, upload the ZIP and start that deployment. Updating the same branch retains the website address.
+
+## Interface update
+
+The workspace now uses a light clinical layout: an ECG-first display, live summary cards for the selected output, quick rhythm presets, and a compact experiment setup panel. MPC tuning and oscillator parameters expand when needed. Reference comparison and model documentation remain available through the workspace navigation. A genuine baseline simulation runs on first load. Reset clears its results; Run comparison or Restore baseline rhythm starts a new run. The simulation and controller equations are unchanged by this visual update.
 
 ## Run an experiment
 
